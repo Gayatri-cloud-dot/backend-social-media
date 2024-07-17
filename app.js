@@ -1,19 +1,26 @@
-const express=require("express");
-const app=express();
-const cookieParser=require("cookie-parser");
+const express = require("express");
+const app = express();
+const cookieParser = require("cookie-parser");
+const cors = require("cors");
 
 app.use(express.json());
-app.use(express.urlencoded({extended:true}));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
 
 //import routes
-const post=require("./routes/post");
-const user=require("./routes/user");
+const post = require("./routes/post");
+const user = require("./routes/user");
 
-app.use("/api/v1",post);
-app.use("/api/v1",user);
+app.use("/api/v1", post);
+app.use("/api/v1", user);
 
-if(process.env.NODE_ENV!=="production"){
-require("dotenv").config({path:"backend/config/config.env" });
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config({ path: "backend/config/config.env" });
 }
-module.exports=app;
+module.exports = app;
