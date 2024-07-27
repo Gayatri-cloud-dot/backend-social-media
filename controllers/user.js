@@ -2,6 +2,7 @@ const User = require("../models/user");
 const Post = require("../models/Post");
 const crypto = require("crypto");
 const { sendEmail } = require("../middlewares/sendEmail");
+const cloudinary = require("cloudinary");
 exports.createUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -38,7 +39,9 @@ exports.createUser = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email }).select("+password");
+    const user = await User.findOne({ email })
+      .select("+password")
+      .populate("posts followers following");
     if (!user) {
       return res.status(200).json({
         success: false,
@@ -256,7 +259,9 @@ exports.deleteMyProfile = async (req, res) => {
 
 exports.MyProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).populate("posts");
+    const user = await User.findById(req.user._id).populate(
+      "posts followers following "
+    );
 
     res.status(200).json({
       success: true,
@@ -272,7 +277,9 @@ exports.MyProfile = async (req, res) => {
 
 exports.getUserProfile = async (req, res) => {
   try {
-    const user = await User.findOne(req.params.id).populate("posts");
+    const user = await User.findOne(req.params.id).populate(
+      "posts,followers,following"
+    );
     if (!user) {
       res.status(404).json({
         success: false,
@@ -379,6 +386,31 @@ exports.resetPassword = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Password Updated",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+exports.getMyPosts = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    const posts = [];
+
+    for (let i = 0; i < user.posts.length; i++) {
+      const post = await Post.findById(user.posts[i]).populate(
+        "likes comments.user owner"
+      );
+      posts.push(post);
+    }
+
+    res.status(200).json({
+      success: true,
+      posts,
     });
   } catch (error) {
     res.status(500).json({

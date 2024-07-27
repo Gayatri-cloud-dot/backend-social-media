@@ -1,13 +1,17 @@
 const Post = require("../models/Post");
 const User = require("../models/user");
+const cloudinary = require("cloudinary");
 
 exports.createPost = async (req, res) => {
   try {
+    const myCloud = await cloudinary.v2.uploader.upload(req.body.image, {
+      folder: "posts",
+    });
     const newPostData = {
       caption: req.body.caption,
       image: {
-        public_id: req.body.public_id,
-        url: req.body.url,
+        public_id: myCloud.public_id,
+        url: myCloud.secure_url,
       },
       owner: req.user._id,
     };
@@ -15,17 +19,18 @@ exports.createPost = async (req, res) => {
 
     const user = await User.findById(req.user.id);
 
-    user.posts.push(post._id);
+    user.posts.unshift(post._id);
     await user.save();
 
     res.status(201).json({
-      sucess: true,
+      success: true,
       post,
+      message: "Post Created",
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      Message: error.message,
+      message: error.message,
     });
   }
 };
@@ -38,12 +43,14 @@ exports.deletePost = async (req, res) => {
         message: "Post not found",
       });
     }
+
     if (post.owner.toString() !== req.user._id.toString()) {
       return res.status(401).json({
         success: false,
         message: "unauthorized",
       });
     }
+    await cloudinary.v2.uploader.destroy(post.image.public_id);
     await post.deleteOne();
     const user = await User.findById(req.user._id);
     const index = await user.posts.indexOf(req.params._id);
@@ -102,10 +109,10 @@ exports.getPostofFollowing = async (req, res) => {
       owner: {
         $in: user.following,
       },
-    });
+    }).populate("owner likes comments.user");
     res.status(200).json({
       success: true,
-      posts,
+      posts: posts.reverse(),
     });
   } catch (error) {
     res.status(500).json({
