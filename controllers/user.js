@@ -260,7 +260,7 @@ exports.deleteMyProfile = async (req, res) => {
 exports.MyProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).populate(
-      "posts followers following "
+      "posts followers following"
     );
 
     res.status(200).json({
